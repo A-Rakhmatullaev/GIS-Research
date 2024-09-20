@@ -8,7 +8,7 @@ import org.apache.spark.sql.SparkSession;
 
 public class Main {
     private static final String userDir = System.getProperty("user.dir");
-    static String resourceDir = userDir + "/src/resources/";
+    public static String resourceDir = userDir + "/src/resources/";
 
     public static void main(String[] args) {
         SparkSession sparkSessionConfig = SedonaContext
@@ -25,13 +25,10 @@ public class Main {
 
         SedonaVizRegistrator.registerAll(sedona);
 
-
-        //new SimpleExample().testStart(sedona);
-        //new SimpleRangeSearch().start(sedona);
         //new RangeSearch().start(sedona);
-        //new ExperimentConvexHull().start(sedona);
-        new ConvexHull().start(sedona);
-
+        //new ConvexHull().start(sedona);
+        //new LargestEmptyCircle().start(sedona);
+        //new EuclideanShortestPath().start(sedona);
 
         SedonaVizRegistrator.dropAll(sedona);
 

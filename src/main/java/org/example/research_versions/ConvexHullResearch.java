@@ -1,4 +1,4 @@
-package org.example;
+package org.example.research_versions;
 
 import org.apache.sedona.core.formatMapper.shapefileParser.ShapefileReader;
 import org.apache.sedona.core.spatialRDD.SpatialRDD;
@@ -6,11 +6,15 @@ import org.apache.sedona.sql.utils.Adapter;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.MapFunction;
-import org.apache.spark.sql.*;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Encoders;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SparkSession;
+import org.example.Main;
 import org.example.utilties.TempLogger;
-import org.locationtech.jts.geom.*;
+import org.locationtech.jts.geom.Geometry;
 
-public class ConvexHull {
+public class ConvexHullResearch {
     String currentSetLocation = Main.resourceDir + "/nuclear";
     String fileInputLocation = currentSetLocation + "/input";
     String fileOutputLocation = currentSetLocation + "/output/convex_hull";

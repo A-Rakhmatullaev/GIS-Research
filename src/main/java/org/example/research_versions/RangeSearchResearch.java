@@ -1,4 +1,4 @@
-package org.example;
+package org.example.research_versions;
 
 import org.apache.sedona.core.formatMapper.shapefileParser.ShapefileReader;
 import org.apache.sedona.core.spatialOperator.RangeQuery;
@@ -10,10 +10,14 @@ import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
+import org.example.Main;
 import org.example.utilties.TempLogger;
-import org.locationtech.jts.geom.*;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.Polygon;
 
-public class RangeSearch {
+public class RangeSearchResearch {
     String currentSetLocation = Main.resourceDir + "/nuclear";
     String fileInputLocation = currentSetLocation + "/input";
     String fileOutputLocation = currentSetLocation + "/output/range_search";

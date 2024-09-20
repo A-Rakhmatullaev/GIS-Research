@@ -1,4 +1,4 @@
-package org.example;
+package org.example.experimental;
 
 import org.apache.sedona.core.formatMapper.shapefileParser.ShapefileReader;
 import org.apache.sedona.core.spatialRDD.SpatialRDD;
@@ -9,10 +9,8 @@ import org.apache.spark.api.java.function.MapFunction;
 import org.apache.spark.sql.*;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
-import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
-import org.geotools.api.referencing.operation.MathTransform;
-import org.geotools.geometry.jts.JTS;
-import org.geotools.referencing.CRS;
+import org.example.Main;
+import org.example.utilties.TempLogger;
 import org.locationtech.jts.geom.*;
 
 
@@ -105,12 +103,12 @@ public class ExperimentConvexHull {
             System.out.println("Polygon: " + polygonQueryWindowWKT);
 
 
-            CoordinateReferenceSystem w1 = CRS.decode("EPSG:4326");
-            CoordinateReferenceSystem w2 = CRS.decode("EPSG:3857");
-            MathTransform transformation = CRS.findMathTransform(w1, w2);
-            Dataset <Geometry> p = s.selectExpr("convex_hull_geom")
-                    .map((MapFunction<Row, Geometry>) row ->
-                            JTS.transform((Geometry) row.get(0), transformation), Encoders.kryo(Geometry.class));
+//            CoordinateReferenceSystem w1 = CRS.decode("EPSG:4326");
+//            CoordinateReferenceSystem w2 = CRS.decode("EPSG:3857");
+//            MathTransform transformation = CRS.findMathTransform(w1, w2);
+//            Dataset <Geometry> p = s.selectExpr("convex_hull_geom")
+//                    .map((MapFunction<Row, Geometry>) row ->
+//                            JTS.transform((Geometry) row.get(0), transformation), Encoders.kryo(Geometry.class));
             //p.show((int) p.count(), false);
 
 
@@ -125,15 +123,15 @@ public class ExperimentConvexHull {
 //                    .map((MapFunction<Row, Geometry>) row ->
 //                    JTS.transform((Geometry) row.get(0), transformation), Encoders.kryo(Geometry.class)).show(false);
 
-            Dataset <Geometry> tempY = sedona.sql("SELECT ST_Envelope_Aggr(convex_hull_geom) as bound FROM shapeTable")
-                    .map((MapFunction<Row, Geometry>) row ->
-                            JTS.transform((Geometry) row.get(0), transformation), Encoders.kryo(Geometry.class));
+//            Dataset <Geometry> tempY = sedona.sql("SELECT ST_Envelope_Aggr(convex_hull_geom) as bound FROM shapeTable")
+//                    .map((MapFunction<Row, Geometry>) row ->
+//                            JTS.transform((Geometry) row.get(0), transformation), Encoders.kryo(Geometry.class));
 
             //tempY.show(false);
 
-            tempY.createTempView("yTable");
+            //tempY.createTempView("yTable");
 
-            p.createTempView("bTable");
+            //p.createTempView("bTable");
 
             //Dataset<Row> result = sedona.sql("SELECT ST_Pixelize(bTable.value, 256, 256, (SELECT value FROM yTable)) AS pixel_grid FROM bTable");
             //result.show(false);

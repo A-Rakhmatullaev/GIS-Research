@@ -5,7 +5,7 @@ import folium
 
 
 dir_path = os.path.dirname(os.path.abspath(__file__))
-file_path = os.path.join(dir_path, 'nuclear', 'output', 'result.json', 'part-00000')
+file_path = os.path.join(dir_path, 'nuclear', 'output', 'convex_hull', 'convex_result.json', 'part-00000')
 
 print(file_path)
 

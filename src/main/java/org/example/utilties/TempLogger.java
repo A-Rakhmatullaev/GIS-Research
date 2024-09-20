@@ -1,4 +1,4 @@
-package org.example;
+package org.example.utilties;
 
 public class TempLogger {
     public static void log(Object message) {
