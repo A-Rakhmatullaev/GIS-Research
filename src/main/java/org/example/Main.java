@@ -5,6 +5,7 @@ import org.apache.sedona.spark.SedonaContext;
 import org.apache.sedona.viz.sql.utils.SedonaVizRegistrator;
 import org.apache.spark.serializer.KryoSerializer;
 import org.apache.spark.sql.SparkSession;
+import org.example.research_versions.RangeSearchResearch;
 
 public class Main {
     private static final String userDir = System.getProperty("user.dir");
@@ -29,6 +30,8 @@ public class Main {
         //new ConvexHull().start(sedona);
         //new LargestEmptyCircle().start(sedona);
         //new EuclideanShortestPath().start(sedona);
+
+        new RangeSearchResearch().start(sedona);
 
         SedonaVizRegistrator.dropAll(sedona);
 

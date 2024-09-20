@@ -59,7 +59,7 @@ public class RangeSearch {
 //            coordinates[3] = Tashkent;
 //            coordinates[4] = Mumbai;
 //            coordinates[5] = coordinates[0]; // The last coordinate is the same as the first coordinate in order to compose a closed ring
-//            Polygon polygonQueryWindow = geometryFactory.createPolygon(coordinates);
+//            Polygon queryWindow = geometryFactory.createPolygon(coordinates);
 
             // Create a custom quadrilateral query window
             GeometryFactory geometryFactory = new GeometryFactory();
@@ -70,14 +70,14 @@ public class RangeSearch {
             coordinates[3] = Moscow;
             coordinates[4] = Hamburg;
             coordinates[5] = coordinates[0]; // The last coordinate is the same as the first coordinate in order to compose a closed ring
-            Polygon polygonQueryWindow = geometryFactory.createPolygon(coordinates);
+            Polygon queryWindow = geometryFactory.createPolygon(coordinates);
 
             // Create a predicate
             SpatialPredicate spatialPredicate = SpatialPredicate.COVERED_BY;
             boolean usingIndex = false;
 
             // Query a SpatialRDD
-            JavaRDD<Geometry> queryResult = RangeQuery.SpatialRangeQuery(spatialRDD, polygonQueryWindow, spatialPredicate, usingIndex);
+            JavaRDD<Geometry> queryResult = RangeQuery.SpatialRangeQuery(spatialRDD, queryWindow, spatialPredicate, usingIndex);
 
             // Set new value as value for queried SpatialRDD to convert it to DataFrame later
             spatialRDD.setRawSpatialRDD(queryResult);

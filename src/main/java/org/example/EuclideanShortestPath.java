@@ -125,13 +125,14 @@ public class EuclideanShortestPath {
 
         try (BufferedReader br = new BufferedReader(new FileReader(fileInputLocation))) {
             String line;
+            String[] coords;
             int i = 0;
             // Adjust values from which to which obstacles you want to use
             int start = 0;
             int end = 299;
             while ((line = br.readLine()) != null) {
                 if(i > start && i < end) {
-                    String[] coords = line.trim().split(":");
+                    coords = line.trim().split(":");
                     coords = Arrays.copyOf(coords, coords.length + 1);
                     coords[coords.length - 1] = coords[0];
                     List<Coordinate> points = new ArrayList<>();

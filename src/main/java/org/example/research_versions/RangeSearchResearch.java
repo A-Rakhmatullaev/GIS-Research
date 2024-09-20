@@ -1,99 +1,137 @@
 package org.example.research_versions;
 
-import org.apache.sedona.core.formatMapper.shapefileParser.ShapefileReader;
 import org.apache.sedona.core.spatialOperator.RangeQuery;
 import org.apache.sedona.core.spatialOperator.SpatialPredicate;
 import org.apache.sedona.core.spatialRDD.SpatialRDD;
 import org.apache.sedona.sql.utils.Adapter;
 import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 import org.example.Main;
 import org.example.utilties.TempLogger;
-import org.locationtech.jts.geom.Coordinate;
-import org.locationtech.jts.geom.Geometry;
-import org.locationtech.jts.geom.GeometryFactory;
-import org.locationtech.jts.geom.Polygon;
+import org.locationtech.jts.geom.*;
+
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class RangeSearchResearch {
-    String currentSetLocation = Main.resourceDir + "/nuclear";
+    // Chose one set depending on what you want
+    //String currentSetLocation = Main.resourceDir + "/fire_occurrences";
+    String currentSetLocation = Main.resourceDir + "/crime_locations";
     String fileInputLocation = currentSetLocation + "/input";
     String fileOutputLocation = currentSetLocation + "/output/range_search";
 
-    void start(SparkSession sedona) {
+    public void start(SparkSession sedona) {
         TempLogger.log(fileInputLocation);
 
         try {
-            SpatialRDD<Geometry> spatialRDD = ShapefileReader.readToGeometryRDD(
-                    JavaSparkContext.fromSparkContext(sedona.sparkContext()),
-                    fileInputLocation
-            );
-
-            /**
-             * Test values/coordinates (Format: Latitude, Longitude)
-             */
-            Coordinate Khabarovsk = new Coordinate(48.4826923, 135.0835877);
-            Coordinate Tokyo = new Coordinate(35.6821936, 139.762221);
-            Coordinate HongKong = new Coordinate(22.2793278, 114.1628131);
-            Coordinate Tashkent = new Coordinate(41.3123363, 69.2787079);
-            Coordinate Mumbai = new Coordinate(19.0815772, 72.8866275);
-
-            Coordinate Paris = new Coordinate(48.8534951, 2.3483915);
-            Coordinate Madrid = new Coordinate(40.4167047, -3.7035825);
-            Coordinate Istanbul = new Coordinate(41.0063811, 28.9758715);
-            Coordinate Moscow = new Coordinate(55.6255781, 37.6063916);
-            Coordinate Hamburg = new Coordinate(53.5503071, 10.0006714);
-
-            /**
-             * Default format in nuclear.shp is:
-             * Longitude, Latitude
-             */
-
-            // Flip coordinates to make them in (Latitude, Longitude) format
-            spatialRDD.flipCoordinates();
-
-            // Create a custom quadrilateral query window
-//            GeometryFactory geometryFactory = new GeometryFactory();
-//            Coordinate[] coordinates = new Coordinate[6];
-//            coordinates[0] = Khabarovsk;
-//            coordinates[1] = Tokyo;
-//            coordinates[2] = HongKong;
-//            coordinates[3] = Tashkent;
-//            coordinates[4] = Mumbai;
-//            coordinates[5] = coordinates[0]; // The last coordinate is the same as the first coordinate in order to compose a closed ring
-//            Polygon polygonQueryWindow = geometryFactory.createPolygon(coordinates);
-
-            // Create a custom quadrilateral query window
             GeometryFactory geometryFactory = new GeometryFactory();
-            Coordinate[] coordinates = new Coordinate[6];
-            coordinates[0] = Paris;
-            coordinates[1] = Madrid;
-            coordinates[2] = Istanbul;
-            coordinates[3] = Moscow;
-            coordinates[4] = Hamburg;
-            coordinates[5] = coordinates[0]; // The last coordinate is the same as the first coordinate in order to compose a closed ring
-            Polygon polygonQueryWindow = geometryFactory.createPolygon(coordinates);
+
+            SpatialRDD<Point> spatialRDD = new SpatialRDD<>();
+            // Choose one depending on what you want
+            //spatialRDD.setRawSpatialRDD(sedona.createDataset(fireOccurrences(geometryFactory), Encoders.kryo(Point.class)).toJavaRDD());
+            spatialRDD.setRawSpatialRDD(sedona.createDataset(crimeLocations(geometryFactory), Encoders.kryo(Point.class)).toJavaRDD());
+
+            // Create a custom quadrilateral query window
+//            Coordinate NewYork = new Coordinate(40.741895, -73.989308);
+//            Coordinate Miami = new Coordinate(25.7741728, -80.19362);
+//            Coordinate MexicoCity = new Coordinate(19.4326296, -99.1331785);
+//            Coordinate LosAngeles = new Coordinate(34.0536909, -118.242766);
+//            Coordinate Seattle = new Coordinate(47.6038321, -122.330062);
+//
+//            Coordinate[] coordinates = new Coordinate[6];
+//            coordinates[0] = NewYork;
+//            coordinates[1] = Miami;
+//            coordinates[2] = MexicoCity;
+//            coordinates[3] = LosAngeles;
+//            coordinates[4] = Seattle;
+//            coordinates[5] = coordinates[0]; // The last coordinate is the same as the first coordinate in order to compose a closed ring
+//            Polygon queryWindow = geometryFactory.createPolygon(coordinates);
+
+            // Shahruz's coordinates
+            Envelope queryWindow = new Envelope(new Coordinate(-59.202464, -127.663167), new Coordinate(49.472737, 23.8647));
 
             // Create a predicate
             SpatialPredicate spatialPredicate = SpatialPredicate.COVERED_BY;
             boolean usingIndex = false;
 
             // Query a SpatialRDD
-            JavaRDD<Geometry> queryResult = RangeQuery.SpatialRangeQuery(spatialRDD, polygonQueryWindow, spatialPredicate, usingIndex);
+            JavaRDD<Point> queryResult = RangeQuery.SpatialRangeQuery(spatialRDD, queryWindow, spatialPredicate, usingIndex);
 
             // Set new value as value for queried SpatialRDD to convert it to DataFrame later
             spatialRDD.setRawSpatialRDD(queryResult);
 
+            // Code below is to show the results
             // Convert SpatialRDD with new value to DataFrame
-            Dataset<Row> spatialQueryDf = Adapter.toDf(spatialRDD, sedona);
+            //Dataset<Row> spatialQueryDf = Adapter.toDf(spatialRDD, sedona);
 
             // Show the result
-            spatialQueryDf.show((int) spatialQueryDf.count(), false);
+            //spatialQueryDf.show((int) spatialQueryDf.count(), false);
+
+            // Save the result
+            //spatialRDD.saveAsGeoJSON(fileOutputLocation + "/points_in_range.json");
         } catch (Exception e) {
             System.out.println("Printing errors: "  + e);
             e.printStackTrace();
         }
+    }
+
+    private List<Point> fireOccurrences(GeometryFactory geometryFactory) {
+        return readCoordinates(DatasetType.Fire, fileInputLocation + "/fire.csv", geometryFactory);
+    }
+
+    private List<Point> crimeLocations(GeometryFactory geometryFactory) {
+        return readCoordinates(DatasetType.Crime, fileInputLocation + "/crime.csv", geometryFactory);
+    }
+
+    private List<Point> readCoordinates(DatasetType datasetType, String fileInputLocation, GeometryFactory geometryFactory) {
+        ArrayList<Point> coordinates = new ArrayList<>();
+        // Read CSV file
+        try (BufferedReader br = new BufferedReader(new FileReader(fileInputLocation))) {
+            String line;
+            int i = 0;
+            String[] coordinateXY;
+
+
+            while ((line = br.readLine()) != null) {
+                // Skip the first line, as it contains text that ruins the logic
+                if (i == 0) {
+                    i += 1;
+                    continue;
+                }
+                coordinateXY = line.split(",(?=([^\"]*\"[^\"]*\")*[^\"]*$)");
+                if(coordinateXY.length != 0) {
+                    double x;
+                    double y;
+                    if(datasetType.equals(DatasetType.Fire)) {
+                        x = Double.parseDouble(coordinateXY[1]);
+                        y = Double.parseDouble(coordinateXY[0]);
+                    } else {
+                        x = Double.parseDouble(coordinateXY[0]);
+                        y = Double.parseDouble(coordinateXY[1]);
+                    }
+
+                    if (x != Double.POSITIVE_INFINITY && y != Double.POSITIVE_INFINITY) {
+//                        System.out.println("X: " + x);
+//                        System.out.println("Y: " + y);
+                        coordinates.add(geometryFactory.createPoint(new Coordinate(x, y)));
+                    }
+                    i += 1;
+                }
+            }
+        } catch(IOException ioe) {
+            ioe.printStackTrace();
+        }
+        return coordinates;
+    }
+
+    private enum DatasetType {
+        Fire,
+        Crime
     }
 }
