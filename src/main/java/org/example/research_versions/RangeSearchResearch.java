@@ -3,14 +3,10 @@ package org.example.research_versions;
 import org.apache.sedona.core.spatialOperator.RangeQuery;
 import org.apache.sedona.core.spatialOperator.SpatialPredicate;
 import org.apache.sedona.core.spatialRDD.SpatialRDD;
-import org.apache.sedona.sql.utils.Adapter;
 import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Encoders;
-import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 import org.example.Main;
-import org.example.utilties.TempLogger;
 import org.locationtech.jts.geom.*;
 
 import java.io.BufferedReader;
@@ -20,38 +16,23 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class RangeSearchResearch {
-    // Chose one set depending on what you want
-    //String currentSetLocation = Main.resourceDir + "/fire_occurrences";
-    String currentSetLocation = Main.resourceDir + "/crime_locations";
-    String fileInputLocation = currentSetLocation + "/input";
-    String fileOutputLocation = currentSetLocation + "/output/range_search";
+    String currentSetLocation;
+    String fileInputLocation;
+    String fileOutputLocation;
 
-    public void start(SparkSession sedona) {
-        TempLogger.log(fileInputLocation);
+    public void start(SparkSession sedona, DatasetType datasetType) {
+        // Must be called before all other operations
+        detectType(datasetType);
 
         try {
             GeometryFactory geometryFactory = new GeometryFactory();
 
             SpatialRDD<Point> spatialRDD = new SpatialRDD<>();
-            // Choose one depending on what you want
-            //spatialRDD.setRawSpatialRDD(sedona.createDataset(fireOccurrences(geometryFactory), Encoders.kryo(Point.class)).toJavaRDD());
-            spatialRDD.setRawSpatialRDD(sedona.createDataset(crimeLocations(geometryFactory), Encoders.kryo(Point.class)).toJavaRDD());
-
-            // Create a custom quadrilateral query window
-//            Coordinate NewYork = new Coordinate(40.741895, -73.989308);
-//            Coordinate Miami = new Coordinate(25.7741728, -80.19362);
-//            Coordinate MexicoCity = new Coordinate(19.4326296, -99.1331785);
-//            Coordinate LosAngeles = new Coordinate(34.0536909, -118.242766);
-//            Coordinate Seattle = new Coordinate(47.6038321, -122.330062);
-//
-//            Coordinate[] coordinates = new Coordinate[6];
-//            coordinates[0] = NewYork;
-//            coordinates[1] = Miami;
-//            coordinates[2] = MexicoCity;
-//            coordinates[3] = LosAngeles;
-//            coordinates[4] = Seattle;
-//            coordinates[5] = coordinates[0]; // The last coordinate is the same as the first coordinate in order to compose a closed ring
-//            Polygon queryWindow = geometryFactory.createPolygon(coordinates);
+            if(datasetType.equals(DatasetType.Fire))
+                spatialRDD.setRawSpatialRDD(sedona.createDataset(fireOccurrences(geometryFactory), Encoders.kryo(Point.class)).toJavaRDD());
+            else if(datasetType.equals(DatasetType.Crime))
+                spatialRDD.setRawSpatialRDD(sedona.createDataset(crimeLocations(geometryFactory), Encoders.kryo(Point.class)).toJavaRDD());
+            else throw new RuntimeException("No dataset type!");
 
             // Shahruz's coordinates
             Envelope queryWindow = new Envelope(new Coordinate(-59.202464, -127.663167), new Coordinate(49.472737, 23.8647));
@@ -63,18 +44,6 @@ public class RangeSearchResearch {
             // Query a SpatialRDD
             JavaRDD<Point> queryResult = RangeQuery.SpatialRangeQuery(spatialRDD, queryWindow, spatialPredicate, usingIndex);
 
-            // Set new value as value for queried SpatialRDD to convert it to DataFrame later
-            spatialRDD.setRawSpatialRDD(queryResult);
-
-            // Code below is to show the results
-            // Convert SpatialRDD with new value to DataFrame
-            //Dataset<Row> spatialQueryDf = Adapter.toDf(spatialRDD, sedona);
-
-            // Show the result
-            //spatialQueryDf.show((int) spatialQueryDf.count(), false);
-
-            // Save the result
-            //spatialRDD.saveAsGeoJSON(fileOutputLocation + "/points_in_range.json");
         } catch (Exception e) {
             System.out.println("Printing errors: "  + e);
             e.printStackTrace();
@@ -111,10 +80,11 @@ public class RangeSearchResearch {
                     if(datasetType.equals(DatasetType.Fire)) {
                         x = Double.parseDouble(coordinateXY[1]);
                         y = Double.parseDouble(coordinateXY[0]);
-                    } else {
+                        if(x > 83 || x < -80) continue;
+                    } else if(datasetType.equals(DatasetType.Crime)) {
                         x = Double.parseDouble(coordinateXY[0]);
                         y = Double.parseDouble(coordinateXY[1]);
-                    }
+                    } else throw new RuntimeException("No dataset type!");
 
                     if (x != Double.POSITIVE_INFINITY && y != Double.POSITIVE_INFINITY) {
 //                        System.out.println("X: " + x);
@@ -130,7 +100,21 @@ public class RangeSearchResearch {
         return coordinates;
     }
 
-    private enum DatasetType {
+    /**
+     * @param datasetType
+     * @implNote Must be called before all other operations
+     */
+    private void detectType(DatasetType datasetType) {
+        if(datasetType.equals(DatasetType.Fire)) {
+            currentSetLocation = Main.resourceDir + "/fire_occurrences";
+        } else if (datasetType.equals(DatasetType.Crime)) {
+            currentSetLocation = Main.resourceDir + "/crime_locations";
+        } else throw new RuntimeException("No dataset type!");
+        fileInputLocation = currentSetLocation + "/input";
+        fileOutputLocation = currentSetLocation + "/output/range_search";
+    }
+
+    public enum DatasetType {
         Fire,
         Crime
     }

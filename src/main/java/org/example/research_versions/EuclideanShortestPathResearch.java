@@ -19,14 +19,17 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class EuclideanShortestPathResearch {
-    String currentSetLocation = Main.resourceDir + "/300_obstacles";
-    String fileInputLocation = currentSetLocation + "/input/300Obstacles.txt";
-    String fileOutputLocation = currentSetLocation + "/output/esp";
+    String currentSetLocation;
+    String fileInputLocation;
+    String fileOutputLocation;
 
-    void start(SparkSession sedona) {
+    void start(SparkSession sedona, DatasetType datasetType) {
+        // Must be called before all other operations
+        detectType(datasetType);
+
         try {
             GeometryFactory geometryFactory = new GeometryFactory();
-            PolygonRDD obstaclesRDD = generateObstacles(geometryFactory, sedona);
+            PolygonRDD obstaclesRDD = generateObstacles(DatasetType.ThreeHundred, geometryFactory, sedona);
 
             // Example points for the start and end of the shortest path
             Point startPoint = geometryFactory.createPoint(new Coordinate(16.0, 0.322));
@@ -123,7 +126,7 @@ public class EuclideanShortestPathResearch {
         return true;
     }
 
-    private PolygonRDD generateObstacles(GeometryFactory geometryFactory, SparkSession sedona) throws IOException {
+    private PolygonRDD generateObstacles(DatasetType datasetType, GeometryFactory geometryFactory, SparkSession sedona) throws IOException {
         List<Polygon> polygons = new ArrayList<>();
 
         try (BufferedReader br = new BufferedReader(new FileReader(fileInputLocation))) {
@@ -131,8 +134,16 @@ public class EuclideanShortestPathResearch {
             String[] coords;
             int i = 0;
             // Adjust values from which to which obstacles you want to use
-            int start = 0;
-            int end = 299;
+            int start;
+            int end;
+            if(datasetType.equals(DatasetType.ThreeHundred)) {
+                start = 0;
+                end = 299;
+            } else if (datasetType.equals(DatasetType.FiveHundred)) {
+                start = 0;
+                end = 499;
+            } else throw new RuntimeException("No dataset type!");
+
             while ((line = br.readLine()) != null) {
                 if(i > start && i < end) {
                     coords = line.trim().split(":");
@@ -181,5 +192,25 @@ public class EuclideanShortestPathResearch {
 
         LineStringRDD lineStringRDD = new LineStringRDD(sedona.createDataset(Collections.singletonList(lineString), Encoders.kryo(LineString.class)).toJavaRDD());
         lineStringRDD.saveAsGeoJSON( fileOutputLocation + "/path_line.json");
+    }
+
+    /**
+     * @param datasetType
+     * @implNote Must be called before all other operations
+     */
+    private void detectType(DatasetType datasetType) {
+        if(datasetType.equals(DatasetType.ThreeHundred)) {
+            currentSetLocation = Main.resourceDir + "/300_obstacles";
+            fileInputLocation = currentSetLocation + "/input/300Obstacles.txt";
+        } else if (datasetType.equals(DatasetType.FiveHundred)) {
+            currentSetLocation = Main.resourceDir + "/500_obstacles";
+            fileInputLocation = currentSetLocation + "/input/500Obstacles.txt";
+        } else throw new RuntimeException("No dataset type!");
+        fileOutputLocation = currentSetLocation + "/output/esp";
+    }
+
+    public enum DatasetType {
+        ThreeHundred,
+        FiveHundred
     }
 }

@@ -5,6 +5,7 @@ import org.apache.sedona.spark.SedonaContext;
 import org.apache.sedona.viz.sql.utils.SedonaVizRegistrator;
 import org.apache.spark.serializer.KryoSerializer;
 import org.apache.spark.sql.SparkSession;
+import org.example.research_versions.ConvexHullResearch;
 import org.example.research_versions.RangeSearchResearch;
 
 public class Main {
@@ -31,7 +32,8 @@ public class Main {
         //new LargestEmptyCircle().start(sedona);
         //new EuclideanShortestPath().start(sedona);
 
-        new RangeSearchResearch().start(sedona);
+        //new RangeSearchResearch().start(sedona, RangeSearchResearch.DatasetType.Fire);
+        new ConvexHullResearch().start(sedona, ConvexHullResearch.DatasetType.Fire);
 
         SedonaVizRegistrator.dropAll(sedona);
 
