@@ -68,14 +68,6 @@ public class EuclideanShortestPathResearch {
             // Compute time it took in total
             totalEndTime = System.currentTimeMillis();
             System.out.println("Total Elapsed time = " + (totalEndTime - totalStartTime));
-
-//            // The rest of code is to save values
-//            JavaRDD<Point> dijkstraRDD = sedona.createDataset(dijkstraShortestPath, Encoders.kryo(Point.class)).toJavaRDD();
-//
-//            PointRDD dijkstraPointRDD = new PointRDD(dijkstraRDD);
-//
-//            // Save the results - Code below can be commented if needed
-//            saveResults(dijkstraPointRDD, dijkstraShortestPath, geometryFactory, sedona);
         } catch (Exception e) {
             e.printStackTrace();
         }
