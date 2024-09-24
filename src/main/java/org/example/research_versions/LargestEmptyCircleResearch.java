@@ -215,23 +215,6 @@ public class LargestEmptyCircleResearch {
             // Compute time it took in total
             totalEndTime = System.currentTimeMillis();
             System.out.println("Total Elapsed time = " + (totalEndTime - totalStartTime));
-
-            // The rest of code is for saving values
-            // Save results - all points
-            //spatialRDD.flipCoordinates();
-            //spatialRDD.saveAsGeoJSON(fileOutputLocation + "/all_points_result.json");
-
-            // Create the largest empty circle for the dataset
-//            Geometry lecCircle = geometryFactory.createPoint(lecCenter.get().getCoordinate()).buffer(maxRadius.get());
-//            ArrayList <Geometry> l = new ArrayList<>();
-//            l.add(lecCircle);
-//            Dataset<Geometry> b = sedona.createDataset(l, Encoders.kryo(Geometry.class));
-//            SpatialRDD <Geometry> result = new SpatialRDD<>();
-//            result.setRawSpatialRDD(b.toJavaRDD());
-//            result.flipCoordinates();
-
-            // Save results - LEC
-            //result.saveAsGeoJSON(fileOutputLocation + "/lec_result.json");
         } catch (Exception e) {
             e.printStackTrace();
         }

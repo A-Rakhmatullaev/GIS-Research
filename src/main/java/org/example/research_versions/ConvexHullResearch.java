@@ -82,14 +82,6 @@ public class ConvexHullResearch {
             // Compute time it took in total
             totalEndTime = System.currentTimeMillis();
             System.out.println("Total Elapsed time = " + (totalEndTime - totalStartTime));
-
-            // The rest of code is to save the values
-//            JavaRDD<Geometry> convexHullRawRDD = finalHullDf.selectExpr("final_convex_hull").map((MapFunction<Row, Geometry>) row -> (Geometry) row.get(0), Encoders.kryo(Geometry.class)).toJavaRDD();
-//            SpatialRDD<Geometry> resultRDD = new SpatialRDD<>();
-//            resultRDD.setRawSpatialRDD(convexHullRawRDD);
-//            resultRDD.flipCoordinates();
-            // Save results
-            //resultRDD.saveAsGeoJSON(fileOutputLocation + "/convex_result.json");
         } catch (Exception e) {
             e.printStackTrace();
         }
