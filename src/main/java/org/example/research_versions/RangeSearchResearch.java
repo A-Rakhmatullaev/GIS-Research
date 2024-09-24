@@ -19,8 +19,13 @@ public class RangeSearchResearch {
     String currentSetLocation;
     String fileInputLocation;
     String fileOutputLocation;
+    long totalStartTime = 0;
+    long totalEndTime = 0;
+    long mainStartTime = 0;
+    long mainEndTime = 0;
 
     public void start(SparkSession sedona, DatasetType datasetType) {
+        totalStartTime = System.currentTimeMillis();
         // Must be called before all other operations
         detectType(datasetType);
 
@@ -34,6 +39,8 @@ public class RangeSearchResearch {
                 spatialRDD.setRawSpatialRDD(sedona.createDataset(crimeLocations(geometryFactory), Encoders.kryo(Point.class)).toJavaRDD());
             else throw new RuntimeException("No dataset type!");
 
+            mainStartTime = System.currentTimeMillis();
+
             // Shahruz's coordinates
             Envelope queryWindow = new Envelope(new Coordinate(-59.202464, -127.663167), new Coordinate(49.472737, 23.8647));
 
@@ -43,7 +50,14 @@ public class RangeSearchResearch {
 
             // Query a SpatialRDD
             JavaRDD<Point> queryResult = RangeQuery.SpatialRangeQuery(spatialRDD, queryWindow, spatialPredicate, usingIndex);
+            queryResult.collect();
 
+            // Compute time it took for calculations
+            mainEndTime = System.currentTimeMillis();
+            System.out.println("Computation Elapsed time= " + (mainEndTime - mainStartTime));
+            // Compute time it took in total
+            totalEndTime = System.currentTimeMillis();
+            System.out.println("Total Elapsed time = " + (totalEndTime - totalStartTime));
         } catch (Exception e) {
             System.out.println("Printing errors: "  + e);
             e.printStackTrace();

@@ -4,7 +4,6 @@ import org.apache.sedona.core.enums.GridType;
 import org.apache.sedona.core.spatialRDD.SpatialRDD;
 import org.apache.sedona.sql.utils.Adapter;
 import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.api.java.function.MapFunction;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.Row;
@@ -26,8 +25,13 @@ public class ConvexHullResearch {
     String currentSetLocation;
     String fileInputLocation;
     String fileOutputLocation;
+    long totalStartTime = 0;
+    long totalEndTime = 0;
+    long mainStartTime = 0;
+    long mainEndTime = 0;
 
     public void start(SparkSession sedona, DatasetType datasetType) {
+        totalStartTime = System.currentTimeMillis();
         // Must be called before all other operations
         detectType(datasetType);
 
@@ -41,8 +45,11 @@ public class ConvexHullResearch {
                 spatialRDD.setRawSpatialRDD(sedona.createDataset(crimeLocations(geometryFactory), Encoders.kryo(Point.class)).toJavaRDD());
             else throw new RuntimeException("No dataset type!");
 
+            // 3 seconds are spent from pressing 'Run' up to this line, and only 1.5 seconds for the rest of program
+            mainStartTime = System.currentTimeMillis();
+
             spatialRDD.analyze();
-            spatialRDD.spatialPartitioning(GridType.QUADTREE);
+            spatialRDD.spatialPartitioning(GridType.EQUALGRID);
 
             // Uncomment if you need to save all points
             //spatialRDD.saveAsGeoJSON(fileOutputLocation + "/all_points_result.json");
@@ -69,10 +76,18 @@ public class ConvexHullResearch {
             Dataset<Row> finalHullDf = sedona.sql(
                     "SELECT ST_ConvexHull(ST_Union_Aggr(geometry)) as final_convex_hull FROM hullTable");
 
-            JavaRDD<Geometry> convexHullRawRDD = finalHullDf.selectExpr("final_convex_hull").map((MapFunction<Row, Geometry>) row -> (Geometry) row.get(0), Encoders.kryo(Geometry.class)).toJavaRDD();
-            //SpatialRDD<Geometry> resultRDD = new SpatialRDD<>();
-            //resultRDD.setRawSpatialRDD(convexHullRawRDD);
-            //resultRDD.flipCoordinates();
+            // Compute time it took for calculations
+            mainEndTime = System.currentTimeMillis();
+            System.out.println("Computation Elapsed time = " + (mainEndTime - mainStartTime));
+            // Compute time it took in total
+            totalEndTime = System.currentTimeMillis();
+            System.out.println("Total Elapsed time = " + (totalEndTime - totalStartTime));
+
+            // The rest of code is to save the values
+//            JavaRDD<Geometry> convexHullRawRDD = finalHullDf.selectExpr("final_convex_hull").map((MapFunction<Row, Geometry>) row -> (Geometry) row.get(0), Encoders.kryo(Geometry.class)).toJavaRDD();
+//            SpatialRDD<Geometry> resultRDD = new SpatialRDD<>();
+//            resultRDD.setRawSpatialRDD(convexHullRawRDD);
+//            resultRDD.flipCoordinates();
             // Save results
             //resultRDD.saveAsGeoJSON(fileOutputLocation + "/convex_result.json");
         } catch (Exception e) {
@@ -115,6 +130,7 @@ public class ConvexHullResearch {
                     } else if(datasetType.equals(RangeSearchResearch.DatasetType.Crime)) {
                         x = Double.parseDouble(coordinateXY[0]);
                         y = Double.parseDouble(coordinateXY[1]);
+                        if(x == 0.0 || y == 0.0) continue;
                     } else throw new RuntimeException("No dataset type!");
 
                     if (x != Double.POSITIVE_INFINITY && y != Double.POSITIVE_INFINITY) {
