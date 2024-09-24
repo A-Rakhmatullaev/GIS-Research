@@ -16,24 +16,35 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.PriorityBlockingQueue;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 public class EuclideanShortestPathResearch {
     String currentSetLocation;
     String fileInputLocation;
     String fileOutputLocation;
+    long totalStartTime = 0;
+    long totalEndTime = 0;
+    long mainStartTime = 0;
+    long mainEndTime = 0;
 
-    void start(SparkSession sedona, DatasetType datasetType) {
+    public void start(SparkSession sedona, DatasetType datasetType) {
+        totalStartTime = System.currentTimeMillis();
         // Must be called before all other operations
         detectType(datasetType);
 
         try {
             GeometryFactory geometryFactory = new GeometryFactory();
-            PolygonRDD obstaclesRDD = generateObstacles(DatasetType.ThreeHundred, geometryFactory, sedona);
+            PolygonRDD obstaclesRDD = generateObstacles(datasetType, geometryFactory, sedona);
+
+            mainStartTime = System.currentTimeMillis();
 
             // Example points for the start and end of the shortest path
             Point startPoint = geometryFactory.createPoint(new Coordinate(16.0, 0.322));
-            Point endPoint =geometryFactory.createPoint(new Coordinate(129.0, 0.2));
+            Point endPoint = geometryFactory.createPoint(new Coordinate(129.0, 0.2));
 
             // Collect all points to be used for visibility graph
             List<Point> points = new ArrayList<>();
@@ -51,12 +62,20 @@ public class EuclideanShortestPathResearch {
 
             List<Point> dijkstraShortestPath = dijkstraShortestPath(startPoint, endPoint, visibilityGraphRDD);
 
-            JavaRDD<Point> dijkstraRDD = sedona.createDataset(dijkstraShortestPath, Encoders.kryo(Point.class)).toJavaRDD();
+            // Compute time it took for calculations
+            mainEndTime = System.currentTimeMillis();
+            System.out.println("Computation Elapsed time = " + (mainEndTime - mainStartTime));
+            // Compute time it took in total
+            totalEndTime = System.currentTimeMillis();
+            System.out.println("Total Elapsed time = " + (totalEndTime - totalStartTime));
 
-            PointRDD dijkstraPointRDD = new PointRDD(dijkstraRDD);
-
-            // Save the results - Code below can be commented if needed
-            saveResults(dijkstraPointRDD, dijkstraShortestPath, geometryFactory, sedona);
+//            // The rest of code is to save values
+//            JavaRDD<Point> dijkstraRDD = sedona.createDataset(dijkstraShortestPath, Encoders.kryo(Point.class)).toJavaRDD();
+//
+//            PointRDD dijkstraPointRDD = new PointRDD(dijkstraRDD);
+//
+//            // Save the results - Code below can be commented if needed
+//            saveResults(dijkstraPointRDD, dijkstraShortestPath, geometryFactory, sedona);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -65,13 +84,13 @@ public class EuclideanShortestPathResearch {
     private List<Point> dijkstraShortestPath(Point start, Point end, JavaPairRDD<Point, Iterable<Point>> visibilityGraphRDD) {
         Map<Point, Iterable<Point>> visibilityGraph = visibilityGraphRDD.collectAsMap();
         // Create queue of points to calculate the distance to
-        PriorityQueue<Tuple2<Double, Point>> pq = new PriorityQueue<>(Comparator.comparingDouble(Tuple2::_1));
+        PriorityBlockingQueue<Tuple2<Double, Point>> pq = new PriorityBlockingQueue<>(10, Comparator.comparingDouble(Tuple2::_1));
         pq.add(new Tuple2<>(0.0, start));
 
-        Map<Point, Double> distances = new HashMap<>();
+        ConcurrentMap<Point, Double> distances = new ConcurrentHashMap<>();
         distances.put(start, 0.0);
 
-        Map<Point, Point> previous = new HashMap<>();
+        ConcurrentMap<Point, Point> previous = new ConcurrentHashMap<>();
         Set<Point> visited = new HashSet<>();
 
         while (!pq.isEmpty()) {
@@ -89,16 +108,16 @@ public class EuclideanShortestPathResearch {
 
             if (!visited.add(currentPoint)) continue;
 
-            for (Point neighbor : visibilityGraph.getOrDefault(currentPoint, Collections.emptyList())) {
-                if (visited.contains(neighbor)) continue;
-
-                double newDist = distances.get(currentPoint) + currentPoint.distance(neighbor);
-                if (newDist < distances.getOrDefault(neighbor, Double.MAX_VALUE)) {
-                    distances.put(neighbor, newDist);
-                    previous.put(neighbor, currentPoint);
-                    pq.add(new Tuple2<>(newDist, neighbor));
+            StreamSupport.stream(visibilityGraph.getOrDefault(currentPoint, Collections.emptyList()).spliterator(), true).forEach(neighbor -> {
+                if (!visited.contains(neighbor)) {
+                    double newDist = distances.get(currentPoint) + currentPoint.distance(neighbor);
+                    if (newDist < distances.getOrDefault(neighbor, Double.MAX_VALUE)) {
+                        distances.put(neighbor, newDist);
+                        previous.put(neighbor, currentPoint);
+                        pq.add(new Tuple2<>(newDist, neighbor));
+                    }
                 }
-            }
+            });
         }
         return Collections.emptyList();
     }
@@ -171,7 +190,7 @@ public class EuclideanShortestPathResearch {
 
             JavaRDD<Polygon> obstaclesRDD = sedona.createDataset(polygons, Encoders.kryo(Polygon.class)).toJavaRDD();
             // Save obstacles to display later
-            saveObstacles(obstaclesRDD);
+            //saveObstacles(obstaclesRDD);
 
             return new PolygonRDD(obstaclesRDD);
         } catch (IOException e) {
